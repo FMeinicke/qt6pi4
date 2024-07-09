@@ -34,24 +34,37 @@ RUN apt update \
  && apt install sudo \
  && useradd -G sudo -m qtpi \
  && echo "%sudo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-USER qtpi:qtpi
-WORKDIR /home/qtpi
 
 #############################
 # Install required packages #
 #############################
 # Qt
-RUN sudo DEBIAN_FRONTEND=noninteractive TZ="${TZ}" apt install -y make build-essential libclang-dev ninja-build gcc git bison python3 gperf pkg-config libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libatspi2.0-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+RUN DEBIAN_FRONTEND=noninteractive TZ="${TZ}" apt install -y make build-essential libclang-dev ninja-build gcc git bison python3 gperf pkg-config libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libatspi2.0-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
 # cross-compiler toolchain \
- && sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+ && apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
 # package for building CMake \
- && sudo apt install -y libssl-dev \
+ && apt install -y libssl-dev \
 # data transfer \
- && sudo apt install -y rsync wget
+ && apt install -y rsync wget
+
+##################################
+# Build a CMake version that can #
+# cope with our toolchain.cmake  #
+##################################
+RUN git clone https://github.com/Kitware/CMake.git \
+ && cd CMake \
+ && git checkout ${CMAKE_GIT_HASH} \
+ && ./bootstrap \
+ && make \
+ && make install \
+ && cd .. \
+ && rm -rf CMake
 
 #######################
 # Create working dirs #
 #######################
+USER qtpi:qtpi
+WORKDIR /home/qtpi
 RUN mkdir rpi-sysroot rpi-sysroot/usr rpi-sysroot/opt \
  && mkdir qt-host qt-raspi qthost-build qtpi-build
 
@@ -63,19 +76,6 @@ COPY --chown=qtpi:qtpi rpi-sysroot /home/qtpi/rpi-sysroot
 RUN wget https://raw.githubusercontent.com/riscv/riscv-poky/master/scripts/sysroot-relativelinks.py \
  && chmod u+x sysroot-relativelinks.py \
  && python3 sysroot-relativelinks.py rpi-sysroot
-
-##################################
-# Build a CMake version that can #
-# cope with our toolchain.cmake  #
-##################################
-RUN git clone https://github.com/Kitware/CMake.git \
- && cd CMake \
- && git checkout ${CMAKE_GIT_HASH} \
- && ./bootstrap \
- && make \
- && sudo make install \
- && cd .. \
- && rm -rf CMake
 
 ####################
 # Clone Qt sources #
