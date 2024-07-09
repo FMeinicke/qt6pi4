@@ -55,7 +55,7 @@ RUN git clone https://github.com/Kitware/CMake.git \
  && cd CMake \
  && git checkout ${CMAKE_GIT_HASH} \
  && ./bootstrap \
- && make \
+ && make -j${PARALLELIZATION} \
  && make install \
  && cd .. \
  && rm -rf CMake
